@@ -1,0 +1,9 @@
+---
+- name: ONTAP Tools for VMware vSphere Sample Playbook
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  roles:
+  - role: ontap_tools
+    tags:
+      - never
