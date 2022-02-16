@@ -7,14 +7,12 @@ vcenter_username: '{{ lookup("env", "VMWARE_USER") }}'
 vcenter_password: '{{ lookup("env", "VMWARE_PASSWORD") }}'
 
 # ONTAP Cluster to integrate (For Tower/AWX, ONTAP Inventory is used.)
-netapp_hostname: E13A300.hcieuc.demo
+netapp_hostname: '{{ lookup("env", "ONTAP_CLUSTERFQDN") }}'
 
 
 #Path to OVF or OVA file to deploy.
-# download_url: 'https://jumphost01.hcieuc.demo/Files/netapp-ontap-tools-for-vmware-vsphere-9.8-7032.ova'
-# download_url: http://root:NetApp!23@172.21.146.162/folder/OVA/netapp-ontap-tools-for-vmware-vsphere-9.8-7032.ova?dcPath=ha-datacenter&dsName=NFS02
-ova_path: /mnt/ova/netapp-ontap-tools-for-vmware-vsphere-9.8-7032.ova
-# ova_path: http://root:NetApp!23@172.21.146.162/folder/OVA/netapp-ontap-tools-for-vmware-vsphere-9.8-7032.ova?dcPath=ha-datacenter&dsName=NFS02
+ova_path: netapp-ontap-tools-for-vmware-vsphere-9.8-7032.ova
+
 #Name of the VM to work with
 vm_name: netapp-ontap-tools-wld01
 
@@ -41,22 +39,22 @@ maint_user_passwd: '{{ netapp_password }}'
 ontap_tools_hostname: netapp-ontap-tools-wld01
 
 #IP address for the appliance
-ontap_tools_ip: "172.21.146.165"
+ontap_tools_ip: "X.X.X.X"
 
 #Subnet to use on the deployed network
 ontap_tools_netmask: "255.255.255.0"
 
 #Gateway on the deployed network
-ontap_tools_gateway: "172.21.146.250"
+ontap_tools_gateway: "X.X.X.Y"
 
 #NTP Server
 ntp_server: time.netapp.com
 
 #DNS Server
-dns_server: "172.21.146.10, 172.21.146.11"
+dns_server: "A.B.C.D, A.B.C.E"
 
 #DNS Domain Name
-dns_domain: hcieuc.demo
+dns_domain: 
 
 #Default datastore type to query and remove.
 datastore_type: VMFS
