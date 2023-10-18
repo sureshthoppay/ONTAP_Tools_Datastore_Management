@@ -1,0 +1,32 @@
+---
+version: 3
+
+dependencies:
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+  galaxy:
+    collections:
+      - community.vmware
+      - community.general
+      - community.crypto
+      - netapp.ontap
+      - vmware.vmware_rest
+  python:
+    - six
+  system: bindep.txt
+
+images:
+  base_image:
+    name: docker.io/redhat/ubi9:latest
+
+additional_build_steps:
+  prepend_final: |
+    RUN whoami
+    RUN cat /etc/os-release
+    RUN mkdir /ova
+    ADD /mnt/e/OVA/netapp-ontap-tools-for-vmware-vsphere-10.0-36997.ova /ova/
+
+
+

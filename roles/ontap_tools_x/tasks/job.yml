@@ -1,0 +1,15 @@
+---
+
+- name: Get job details for job - {{ job_id }}
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1//jobmanager/jobs/{{ job_id }}?include_hierarchy=true"
+    validate_certs: false
+    method: GET
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: job_details
+  when:
+    - job_id is defined
+  tags:
+    - delete_vvol_ds

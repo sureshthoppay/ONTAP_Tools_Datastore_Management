@@ -1,0 +1,6 @@
+collections:
+- community.vmware
+- community.general
+- community.crypto
+- netapp.ontap
+- vmware.vmware_rest

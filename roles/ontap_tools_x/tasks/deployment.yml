@@ -1,0 +1,150 @@
+---
+- name: Check VM {{ otv_vm[0].name }} exists
+  community.vmware.vmware_vm_info:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    vm_name: "{{ otv_vm[0].name }}"
+  ignore_errors: true
+  register: vm_info
+  tags:
+    - deploy_otv_non_ha
+    - deploy_otv_ha
+
+- name: Non HA deployment of OTV to {{ vcenter_host }}
+  community.vmware.vmware_deploy_ovf:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    datacenter: "{{ datacenter_name }}"
+    cluster: "{{ cluster_name }}"
+    folder: "{{ folder_name }}"
+    datastore: "{{ datastore_name }}"
+    name: "{{ otv_vm[0].name }}"
+    deployment_option: "{{ deployment_option }}"
+    networks:
+      'nat': "{{ port_group }}"
+    validate_certs: no
+    power_on: no
+    ovf: "{{ ova_path }}"
+    inject_ovf_env: yes
+    properties:
+      vplatform.vpserver.user: "{{ vasa_username }}"
+      vplatform.vpserver.passwd: "{{ vasa_password }}"
+      vplatform.admin.user: "{{ vasa_username }}"
+      vplatform.admin.passwd: "{{ vasa_password }}"
+      vplatform.maint.passwd: "{{ maint_password }}"
+      vplatform.configure.asup: true
+      vplatform.vappliance.ntp.servers: "{{ ntp_servers }}"
+      vplatform.configure.loadbalancerip: "{{ metallb_ip }}"
+      vplatform.configure.customca: false
+      vplatform.configure.selfsigned.rootinter: "{{ root_intrmd_cert }}"
+      vplatform.configure.selfsigned.leafpvtkey: "{{ leaf_priv_cert }}"
+      vplatform.configure.selfsigned.domainname: "{{ cert_domain_name }}"
+      vplatform.hostName: "{{ otv_vm[0].name }}"
+      vplatform.ipAddress: "{{ otv_vm[0].ip }}"
+      vplatform.netMask: "{{ otv_vm[0].netmask }}"
+      vplatform.gateway: "{{ otv_vm[0].gateway }}"
+      vplatform.configure.apiserverip: "{{ kube_vip }}"
+      vplatform.managementLif: "{{ ontap_cluster_hostname }}"
+      vplatform.dataLif: "{{ data_lif }}"
+      vplatform.storagevm: "{{ svm_name }}"
+      vplatform.ontapusername: "{{ ontap_cluster_username }}"
+      vplatform.ontapClusterPswd: "{{ ontap_cluster_password }}"
+      vplatform.EnableMigration: "{{ enable_migration }}"
+      vplatform.primaryDNS: "{{ otv_vm[0].primary_dns }}"
+      vplatform.secondaryDNS: "{{ otv_vm[0].secondary_dns }}"
+      vplatform.searchDomains: "{{ otv_vm[0].search_domain }}"
+  when: 
+    - vm_info.failed is defined and vm_info.failed == true
+    - deployment_option == 'newSingleNodeSmall' or deployment_option == 'newSingleNodeMedium' or deployment_option == 'newSingleNodeLarge'
+  tags:
+    - deploy_otv_non_ha
+
+
+- name: HA deployment of OTV to {{ vcenter_host }}
+  community.vmware.vmware_deploy_ovf:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    datacenter: "{{ datacenter_name }}"
+    cluster: "{{ cluster_name }}"
+    folder: "{{ folder_name }}"
+    datastore: "{{ datastore_name }}"
+    name: "{{ otv_vm[0].name }}"
+    deployment_option: "{{ deployment_option }}"
+    networks:
+      'nat': "{{ port_group }}"
+    validate_certs: no
+    power_on: no
+    ovf: "{{ ova_path }}"
+    inject_ovf_env: yes
+    properties:
+      vplatform.vpserver.user: "{{ vasa_username }}"
+      vplatform.vpserver.passwd: "{{ vasa_password }}"
+      vplatform.admin.user: "{{ vasa_username }}"
+      vplatform.admin.passwd: "{{ vasa_password }}"
+      vplatform.maint.passwd: "{{ maint_password }}"
+      vplatform.configure.asup: true
+      vplatform.vappliance.ntp.servers: "{{ ntp_servers }}"
+      vplatform.configure.loadbalancerip: "{{ metallb_ip }}"
+      vplatform.configure.customca: false
+      vplatform.configure.selfsigned.rootinter: "{{ root_intrmd_cert }}"
+      vplatform.configure.selfsigned.leafpvtkey: "{{ leaf_priv_cert }}"
+      vplatform.configure.selfsigned.domainname: "{{ cert_domain_name }}"
+      vplatform.primaryvm: true
+      vplatform.hostName: "{{ otv_vm[0].name }}"
+      vplatform.ipAddress: "{{ otv_vm[0].ip }}"
+      vplatform.netMask: "{{ otv_vm[0].netmask }}"
+      vplatform.gateway: "{{ otv_vm[0].gateway }}"
+      vplatform.configure.apiserverip: "{{ kube_vip }}"
+      vplatform.managementLif: "{{ ontap_cluster_hostname }}"
+      vplatform.configure.svm: "{{ svm_scope }}"
+      vplatform.dataLif: "{{ data_lif }}"
+      vplatform.storagevm: "{{ svm_name }}"
+      vplatform.ontapusername: "{{ ontap_cluster_username }}"
+      vplatform.ontapClusterPswd: "{{ ontap_cluster_password }}"
+      vplatform.EnableMigration: "{{ enable_migration }}"
+      vplatform.primaryDNS: "{{ otv_vm[0].primary_dns }}"
+      vplatform.secondaryDNS: "{{ otv_vm[0].secondary_dns }}"
+      vplatform.searchDomains: "{{ otv_vm[0].search_domain }}"
+      vplatform.contentLibName: "{{ content_library }}"
+      vplatform.template: "{{ template }}"
+      vplatform.vcenter.hostname: "{{ vcenter_host }}"
+      vplatform.vcenter.username: "{{ vcenter_username }}"
+      vplatform.vcenter.passwd: "{{ vcenter_password }}"
+      vplatform.hostNameN2: "{{ otv_vm[1].name }}"
+      vplatform.ipAddressN2: "{{ otv_vm[1].ip }}"
+      vplatform.hostNameN3: "{{ otv_vm[2].name }}"
+      vplatform.ipAddressN3: "{{ otv_vm[2].ip }}"
+  when: 
+    - vm_info.failed is defined and vm_info.failed == true
+    - deployment_option == 'newThreeNodeSmall' or deployment_option == 'newThreeNodeMedium' or deployment_option == 'newThreeNodeLarge'
+  tags:
+    - deploy_otv_ha
+     
+- name: Power on VM {{ otv_vm[0].name }}
+  community.vmware.vmware_guest:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    name: "{{ otv_vm[0].name }}"
+    #name: "{{ vmname }}{{ '%02x' | format(item) }}"
+    validate_certs: no
+    state: poweredon
+    wait_for_ip_address: true
+  when: vm_info.failed is defined and vm_info.failed == true
+  tags:
+    - deploy_otv_non_ha
+    - deploy_otv_ha
+
+
+
+- name: Wait for 10 minutes
+  ansible.builtin.wait_for: timeout=600
+  when: vm_info.failed is defined and vm_info.failed == true
+  tags:
+    - deploy_otv_non_ha
+    - deploy_otv_ha
+

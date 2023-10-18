@@ -1,0 +1,68 @@
+---
+
+# - name: Gather info for SVM
+#   netapp.ontap.na_ontap_rest_info:
+#       hostname: "{{ ontap_cluster_hostname }}"
+#       username: "{{ ontap_cluster_username }}"
+#       password: "{{ ontap_cluster_password }}"
+#       https: true
+#       validate_certs: false
+#       use_rest: Always
+#       gather_subset:
+#         - svm/svms/{{ svm_id }}
+#   tags:
+#     - create_vvol_ds
+
+
+- name: Gather info for SVM
+  ansible.builtin.uri:
+    url: "https://{{ ontap_cluster_hostname }}/api/svm/svms/{{ svm_id }}?fields=aggregates"
+    validate_certs: false
+    force_basic_auth: yes
+    user: "{{ ontap_cluster_username }}"
+    password: "{{ ontap_cluster_password }}"
+    method: GET
+    return_content: yes
+  register: svm_info
+  when:
+    - svm_id is defined
+  tags:
+    - create_vvol_ds
+
+
+- name: Save aggregate ID as fact
+  ansible.builtin.set_fact: 
+    aggr_id: "{{ svm_info.json | json_query(aggrquery) }}"
+  vars:
+    aggrquery: "max_by(aggregates, &available_size).uuid"
+  when: 
+    - svm_info is defined
+  tags:
+    - create_vvol_ds
+
+
+
+- name: Gather info for Flexvol - {{ next_flexvol_name }}
+  ansible.builtin.uri:
+    url: "https://{{ ontap_cluster_hostname }}/api/storage/volumes?is_constituent=false&name={{ next_flexvol_name }}&fields=uuid,&return_records=true&return_timeout=15"
+    validate_certs: false
+    force_basic_auth: yes
+    user: "{{ ontap_cluster_username }}"
+    password: "{{ ontap_cluster_password }}"
+    method: GET
+    return_content: yes
+  register: volume_info
+  when:
+    - next_flexvol_name is defined
+  tags:
+    - shrink_vvol_ds
+
+- name: Save flexvolume ID as fact
+  ansible.builtin.set_fact: 
+    volume_id: "{{ volume_info.json | json_query(volquery) }}"
+  vars:
+    volquery: "records[?name == '{{ next_flexvol_name }}'].uuid"
+  when: 
+    - volume_info is defined
+  tags:
+    - shrink_vvol_ds

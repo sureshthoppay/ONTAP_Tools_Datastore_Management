@@ -1,0 +1,35 @@
+---
+
+- name: Retreive VM Instance UUID
+  community.vmware.vmware_guest_info:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    datacenter: "{{ datacenter_name }}"
+    name: "{{ vm_name }}"
+    schema: "vsphere"
+    # use_instance_uuid: true
+  delegate_to: localhost
+  register: vm_info
+  tags:
+    - vm_info
+
+
+- name: Save VM UUID as fact
+  ansible.builtin.set_fact: 
+    vm_instance_uuid : "{{ vm_info.instance.summary.config.instanceUuid }}"
+  tags:
+    - vm_info
+
+- name: Get vVols of a Virtual Machine
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/virtual-machines/{{ vm_instance_uuid }}/vvols"
+    validate_certs: false
+    method: GET
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: vm_vol_info
+  tags:
+    - vm_info

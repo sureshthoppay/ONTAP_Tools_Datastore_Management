@@ -1,0 +1,160 @@
+---
+
+- name: Get all vCenter details from ONTAP Tools
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters"
+    validate_certs: false
+    method: GET
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: all_vcenter_info
+  tags:
+    - initial_setup
+    - vm_info
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - register_vcenter
+    - register_svm
+
+- name: Save vCenter GUID as fact
+  ansible.builtin.set_fact: 
+    vc_guid: "{{ all_vcenter_info.json | json_query(vcquery) }}"
+  vars:
+    vcquery: "records[?hostname_or_ip == '{{ vcenter_host}}'].vcguid | [0]"
+  tags:
+    - initial_setup
+    - vm_info
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - register_vcenter
+    - register_svm
+
+- name: Register vCenter {{ vcenter_host }} to ONTAP Tools
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters"
+    validate_certs: false
+    method: POST
+    body_format: json
+    body:
+      hostname_or_ip: "{{ vcenter_host }}"
+      port: "443"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: vcenter_reg
+  when: vc_guid == ''
+  tags:
+    - register_vcenter
+    - initial_setup
+
+
+- name: Save registered vCenter GUID as fact
+  ansible.builtin.set_fact: 
+    vc_guid: "{{ vcenter_reg.json.vcguid }}"
+  when: vc_guid == ''
+  tags:
+    - register_vcenter
+    - initial_setup
+
+
+
+- name: Save SVM ID as fact
+  ansible.builtin.set_fact: 
+    svm_id: "{{ all_vcenter_info.json | json_query(svmquery) }}"
+  vars:
+    svmquery: "records[].storage_backends[?hostname_or_ip == '{{ svm_address }}'].storage_id | [0] | [0]"
+  # when: all_vcenter_info is succeeded
+  tags:
+    - create_vvol_ds
+
+- name: Save ONTAP Cluster ID as fact
+  ansible.builtin.set_fact: 
+    ontap_cluster_id: "{{ all_vcenter_info.json | json_query(ocquery) }}"
+  vars:
+    ocquery: "records[].storage_backends[?hostname_or_ip == '{{ ontap_cluster_hostname }}'].storage_id | [0] | [0]"
+  # when: all_vcenter_info is succeeded
+  tags:
+    - initial_setup
+    - never
+
+- name: Register {{ ontap_cluster_hostname }} as local scope to {{ vcenter_host }}
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/storage-backends"
+    validate_certs: false
+    method: POST
+    status_code: [201]
+    body_format: json
+    body:
+      hostname_or_ip: "{{ ontap_cluster_hostname }}"
+      username: "{{ ontap_cluster_username }}"
+      password: "{{ ontap_cluster_password }}"
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: global_reg
+  when: ontap_cluster_id == ''
+  tags:
+    - initial_setup
+    - never
+
+- name: Register SVM {{ svm_address }} to {{ vcenter_host }}
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/storage-backends"
+    validate_certs: false
+    method: POST
+    status_code: [201]
+    body_format: json
+    body:
+      hostname_or_ip: "{{ svm_address }}"
+      username: "{{ svm_username }}"
+      password: "{{ svm_password }}"
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: svm_reg
+  when: svm_id == ''
+  tags:
+    - register_svm
+    - create_vvol_ds
+    - initial_setup
+
+- name: Save registered SVM ID as fact
+  ansible.builtin.set_fact: 
+    svm_id: "{{ svm_reg.json.storage_id }}"
+  when: svm_id == ''
+  tags:
+    - register_svm
+    - create_vvol_ds
+
+- name: Get VASA provider certificate
+  community.crypto.get_certificate:
+    host: "{{ metallb_ip }}"
+    port: 443
+    asn1_base64: true
+  register: vasa_certificate
+  tags:
+    - register_vasa
+    - initial_setup
+
+- name: Ensure VASA Provider registered to {{ vcenter_host }}
+  community.vmware.vmware_vasa:
+    hostname: "{{ vcenter_host }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    vasa_name: "{{ vasa_name }}"
+    vasa_url: "https://{{ metallb_ip }}/virtualization/version.xml"
+    vasa_username: "{{ vasa_username }}"
+    vasa_password: "{{ vasa_password }}"
+    vasa_certificate: "{{ vasa_certificate.cert }}"
+    state: present
+  tags:
+    - register_vasa
+    - initial_setup

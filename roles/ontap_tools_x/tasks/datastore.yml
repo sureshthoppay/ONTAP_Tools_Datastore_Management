@@ -1,0 +1,194 @@
+---
+
+- name: Gather info for {{ vvol_datastore_name }}
+  community.vmware.vmware_datastore_info:
+    hostname: '{{ vcenter_host }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    datacenter_name: '{{ datacenter_name }}'
+    name: "{{ vvol_datastore_name }}"
+    validate_certs: false
+    schema: "vsphere"
+  register: ds_info
+  tags:
+    - ds_info
+    - create_vvol_ds
+    - delete_vvol_ds
+
+
+- name: Save datastore MOID as fact
+  ansible.builtin.set_fact: 
+    datastore_moref: "{{ ds_info.datastores[0]._vimid }}"
+  when: ds_info.datastores | length != 0
+  tags:
+    - ds_info
+    - create_vvol_ds
+    - delete_vvol_ds
+
+- name: Gather info for {{ cluster_name }}
+  community.vmware.vmware_cluster_info:
+    hostname: '{{ vcenter_host }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    # datacenter: '{{ datacenter_name }}'
+    cluster_name: "{{ cluster_name }}"
+    validate_certs: false
+    # schema: "vsphere"
+  register: cluster_info
+  tags:
+    - cluster_info
+    - create_vvol_ds
+
+- name: Save Cluster MOID as fact
+  ansible.builtin.set_fact: 
+    cluster_moref: "{{ cluster_info.clusters[cluster_name].moid }}"
+  when: cluster_info is defined
+  tags:
+    - cluster_info
+    - create_vvol_ds
+
+
+- name: Create vVol Datastore
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/vvols/datastores"
+    validate_certs: false
+    method: POST
+    status_code: [202]
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+    body_format: json
+    body:
+      name: "{{ vvol_datastore_name }}"
+      description: "{{ vvol_description }}"
+      storage_backend:
+        storage_id: "{{ svm_id }}"
+      platform_type: "aff"
+      moref: "{{ cluster_moref }}"
+      protocol: "{{ vvol_datastore_protocol }}"
+      volumes:
+        - name: "{{ vvol_datastore_name }}_vol01"
+          is_existing: false
+          size_in_mb: "{{ flexvol_size_in_mb }}"
+          # size_in_mb: "{{ flexvol_size_in_mb | human_to_bytes/1024/1024 | int }}"
+          space_efficiency: "thin"
+          aggregate:
+            id: "{{ aggr_id }}"
+  register: create_ds_job_id
+  when: 
+    - datastore_moref is not defined
+    - vc_guid is defined
+    - vvol_datastore_name is defined
+    - svm_id is defined
+    - cluster_moref is defined
+    - aggr_id is defined
+    - flexvol_name is defined
+  tags:
+    - create_vvol_ds
+  
+- name: Save create datastore Job ID as fact
+  ansible.builtin.set_fact: 
+    job_id: "{{ create_ds_job_id.json.id }}"
+  when: datastore_moref is not defined
+  tags:
+    - create_vvol_ds
+
+
+- name: Delete vVol Datastore - {{ vvol_datastore_name }}
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/vvols/datastores/{{ datastore_moref }}?delete_volumes=true"
+    validate_certs: false
+    method: DELETE
+    status_code: [202]
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: delete_ds_job_id
+  when:
+    - datastore_moref is defined
+    - vc_guid is defined
+  tags:
+    - delete_vvol_ds
+    # - never
+
+
+- name: Save delete datastore Job ID as fact
+  ansible.builtin.set_fact: 
+    job_id: "{{ delete_ds_job_id.json.id }}"
+      # job_id: '5711'
+  when: delete_ds_job_id is defined
+  tags:
+    - delete_vvol_ds
+
+- name: Expand vVol Datastore - {{ vvol_datastore_name }}
+  # var:
+    # - next_flexvol_name: "{{ vvol_datastore_name }}_vol02"
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/vvols/datastores/{{ datastore_moref }}/volumes"
+    validate_certs: false
+    method: PATCH
+    status_code: [202]
+    body_format: json
+    body:
+      operation: "grow"
+      volumes:
+        - is_existing: false
+          name: "{{ next_flexvol_name }}"
+          size_in_mb: 1024000
+          space_efficiency: "thin"
+          aggregate:
+            id: "{{ aggr_id }}"
+          storage_backend:
+            storage_id: "{{ svm_id }}"
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: expand_ds_job_id
+  when:
+    - datastore_moref is defined
+    - vc_guid is defined
+  tags:
+    - expand_vvol_ds
+    - never
+
+
+- name: Save expand datastore Job ID as fact
+  ansible.builtin.set_fact: 
+    job_id: "{{ expand_ds_job_id.json.id }}"
+  when: expand_ds_job_id is defined
+  tags:
+    - expand_vvol_ds
+
+
+- name: Shrink vVol Datastore - {{ vvol_datastore_name }}
+  # var:
+    # - next_flexvol_name: "{{ vvol_datastore_name }}_vol02"
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/vcenters/{{ vc_guid }}/vvols/datastores/{{ datastore_moref }}/volumes?delete_volumes=true"
+    validate_certs: false
+    method: PATCH
+    status_code: [202]
+    body_format: json
+    body:
+      operation: "shrink"
+      volumes:
+        - is_existing: true
+          id: "{{ volume_id | first }}"
+    headers:
+      x-auth: "{{ jwt_token }}"
+    return_content: yes
+  register: shrink_ds_job_id
+  when:
+    - datastore_moref is defined
+    - vc_guid is defined
+  tags:
+    - shrink_vvol_ds
+    - never
+
+
+- name: Save shrink datastore Job ID as fact
+  ansible.builtin.set_fact: 
+    job_id: "{{ shrink_ds_job_id.json.id }}"
+  when: shrink_ds_job_id is defined
+  tags:
+    - shrink_vvol_ds

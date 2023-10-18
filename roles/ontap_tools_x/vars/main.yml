@@ -1,0 +1,91 @@
+---
+
+otvx_api_base: 'rtp-otvx.demo.local:8443'
+vcenter_username: 'administrator@vsphere.local'
+vcenter_host: 'rtp-vc01.demo.local'
+vcenter_password: '{{ lookup("env", "VCENTER_PASSWORD") }}'
+datacenter_name: 'RTP'
+cluster_name: 'Cluster01'
+datastore_name: 'vVol01'
+folder_name: '/RTP/vm/ONTAP Tools'
+otv_vm:
+  - name: 'rtp-otvx01'
+    ip: '172.x.x.201'
+    netmask: '255.255.255.0'
+    gateway: '172.x.x.1'
+    primary_dns: 'x.x.x.y'
+    secondary_dns: 'x.x.y.z'
+    search_domain: 'demo.local'
+  - name: 'rtp-otvx02'
+    ip: '172.x.x.202'
+  - name: 'rtp-otvx03'
+    ip: '172.x.x.203'  
+deployment_option: 'newThreeNodeSmall'
+ova_path: '/ova/netapp-ontap-tools-for-vmware-vsphere-10.0-36997.ova'
+port_group: 'VLAN XY'
+root_intrmd_cert: ''
+leaf_priv_cert: ''
+cert_domain_name: ''
+content_library: 'CL'
+template: 'netapp-ontap-tools-for-vmware-vsphere-10.0-36997'
+vasa_name: "{{ otvx_api_base | split('.') | first }}"
+vasa_username: 'administrator'
+vasa_password: '{{ lookup("env", "VASA_PASSWORD") }}'
+# vasa_certificate: |
+  # -----BEGIN CERTIFICATE-----
+  # MIIFVjCCBD6gAwIBAgIURzcOMhCbN57W+TNUmvsHvIviTP8wDQYJKoZIhvcNAQEL
+  # BQAwGTEXMBUGA1UEAwwOMTcyLjIxLjIyOC4yMDAwHhcNMjMxMDE0MDIxNDQ2WhcN
+  # MjQxMDEzMDIxNDQ2WjAZMRcwFQYDVQQDDA4xNzIuMjEuMjI4LjIwMDCCASIwDQYJ
+  # KoZIhvcNAQEBBQADggEPADCCAQoCggEBANtNi6D9hr7Lz4reAfXAkZcdaykL0OdM
+  # ylwrG6ES4NJMo4X+mvQVrfAeNCmgytEzr/KDcEm+9uzLoVFXdsTpubZAkaHTGp9S
+  # HWc31MAYqXpPvCJBXVEXw3vWArquDtK/pM5DUbzKPKg615MnMMYvlSNWKhDknfwO
+  # IF/3vYaQb4+7DQ6SigOfTCeo45nSYW/pWtMARMKZYBxbQmwmydpYBaTlggi9uS8E
+  # UFnY9cvEbDie+mK34fjWm1z5ldZK/D0qwxRCVoNpyqCncbb43PqnNhP5EooD1t9e
+  # PCglAeT0WNS1wdk5on93hhUIsagSCqHBDvxaoZzXPVbEE2CJFOgKEZ0CAwEAAaOC
+  # ApQwggKQMAkGA1UdEwQCMAAwCwYDVR0PBAQDAgXgMBMGA1UdJQQMMAoGCCsGAQUF
+  # BwMBMIICXwYDVR0RBIICVjC345KCBi0qLXN2Y4IMKi5udHYtc3lzdGVtghAqLm50
+  # di1zeXN0ZW0uc3Zjgh4qLm50di1zeXN0ZW0uc3ZjLmNsdXN0ZXIubG9jYWyCEiot
+  # bW9uZ29kYi1oZWFkbGVzc4IdKi1tb25nb2RiLWhlYWRsZXNzLm50di1zeXN0ZW2C
+  # ISotbW9uZ29kYi1oZWFkbGVzcy5udHYtc3lzdGVtLnN2Y4IvKi1tb25nb2RiLWhl
+  # YWRsZXNzLm50di1zeXN0ZW0uc3ZjLmNsdXN0ZXIubG9jYWyCFyotcmFiYml0bXEt
+  # c3ZjLWhlYWRsZXNzgiIqLXJhYmJpdG1xLXN2Yy1oZWFkbGVzcy5udHYtc3lzdGVt
+  # giYqLXJhYmJpdG1xLXN2Yy1oZWFkbGVzcy5udHYtc3lzdGVtLnN2Y4I0Ki1yYWJi
+  # aXRtcS1zdmMtaGVhZGxlc3MubnR2LXN5c3RlbS5zdmMuY2x1c3Rlci5sb2NhbIIS
+  # Ki0qLm50di1zeXN0ZW0uc3ZjgiAqLSoubnR2LXN5c3RlbS5zdmMuY2x1c3Rlci5s
+  # b2NhbIIJbG9jYWxob3N0ggkxMjcuMC4wLjGCDjE3Mi4yMS4yMjguMjAwggsqLW1v
+  # bmdvZGItKoIpKi12YXVsdC1hZ2VudC1pbmplY3Rvci1zdmMubnR2LXN5c3RlbS5z
+  # dmOCNyotdmF1bHQtYWdlbnQtaW5qZWN0b3Itc3ZjLm50di1zeXN0ZW0uc3ZjLmNs
+  # dXN0ZXIubG9jYWyCGS12YXVsdC1zdmMubnR2LXN5c3RlbS5zdmMwDQYJKoZIhvcN
+  # AQELBQADggEBAA2dUNw0jHCkzfU/VYjpAstdE9O5knl5ElSS0LaCQawTURA0dk0C
+  # F/yIIkIrM96ZpRa1TVAoAW3j+iAXZ6tLknKyr9InfWDjnVHNUZ2PGhXIDtMLBjeS
+  # 04QgczredTf42aelnGqgYLIJ3p7y8i3fWYULqlUYhyv8FSO0GmyjrCIfofTmZHaR
+  # Ad9+OpNTZe3emSVs4yGQpKyVpeaZx1edT5WAZDR1v3qpa0Z4R9jBNGEOldBfFEzn
+  # 8TzoNo94FErYdYBGId0zi5epBl6d+G65POK3gEufH8s9in/HVTvyaJv1i77jYA9O
+  # c4oXctH4kZl9wANqDR7DVGjKaH/4lCiLito=
+  # -----END CERTIFICATE-----
+
+maint_password: '{{ lookup("env", "MAINT_PASSWORD") }}'
+ntp_servers: 'time.demo.local'
+metallb_ip: '172.x.x.200'
+kube_vip: '172.x.x.205'
+data_lif: '172.x.x.11'
+enable_migration: false
+vvol_datastore_name: 'vVol03'
+
+flexvol_size_in_mb: 1024000
+next_flexvol_name: "{{ vvol_datastore_name }}_vol02"
+vvol_description: 'Demo vVol'
+vvol_datastore_protocol: 'iscsi'
+
+
+vm_name: 'Demo02'
+
+svm_name: 'zonea'
+svm_address: '172.x.x.10'
+svm_scope: false
+svm_username: 'vsadmin'
+svm_password: '{{ lookup("env", "SVM_PASSWORD") }}'
+
+ontap_cluster_hostname: '172.x.x.180'
+ontap_cluster_username: 'admin'
+ontap_cluster_password: '{{ lookup("env", "ONTAP_PASSWORD") }}'

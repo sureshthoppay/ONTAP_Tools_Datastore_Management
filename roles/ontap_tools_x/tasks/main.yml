@@ -1,0 +1,87 @@
+---
+
+- name: Deploy ONTAP Tools for VMware vSphere
+  ansible.builtin.include_tasks:
+    file: deployment.yml
+  tags:
+    - deploy_otv_non_ha
+    - deploy_otv_ha
+    - never
+    
+
+- name: Authenticate to vCenter - {{ vcenter_host }}
+  ansible.builtin.include_tasks:
+    file: auth.yml
+  tags:
+    - initial_setup
+    - register_vcenter
+    - register_svm
+    - register_vasa
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - vm_info
+
+
+
+- name: Get vCenter GUID of {{ vcenter_host }}
+  ansible.builtin.include_tasks:
+    file: vcenter.yml
+  tags:
+    - initial_setup
+    - register_vcenter
+    - register_svm
+    - register_vasa
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - vm_info
+
+
+- name: ONTAP operations for {{ ontap_cluster_hostname }}
+  ansible.builtin.include_tasks:
+    file: ontap.yml
+  tags:
+    - create_vvol_ds
+    - shrink_vvol_ds
+    - never
+
+
+
+- name: Datastore operations for {{ vvol_datastore_name }}
+  ansible.builtin.include_tasks:
+    file: datastore.yml
+  tags:
+    - ds_info
+    - cluster_info
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - never
+
+- name: Job operations for {{ job_id }}
+  ansible.builtin.include_tasks:
+    file: job.yml
+  when:
+    - job_id is defined
+  tags:
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - never
+
+- name: Get vVol details of {{ vm_name }}
+  ansible.builtin.include_tasks:
+    file: vm.yml
+  tags:
+    - vm_info
+    - never
+
+
+
+
+

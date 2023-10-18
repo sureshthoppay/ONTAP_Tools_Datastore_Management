@@ -1,9 +1,10 @@
 ---
-- name: ONTAP Tools for VMware vSphere Sample Playbook
+- name: ONTAP Tools for VMware vSphere 10.0 Sample Playbook
   hosts: localhost
   gather_facts: false
   connection: local
   roles:
-  - role: ontap_tools
-    tags:
-      - never
+  - role: ontap_tools_x
+    # tags:
+    #   - never
+

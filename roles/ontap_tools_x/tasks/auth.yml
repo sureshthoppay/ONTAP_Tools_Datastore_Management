@@ -1,0 +1,40 @@
+---
+
+- name: Generate a Token for vCenter
+  ansible.builtin.uri:
+    url: "https://{{ otvx_api_base }}/virtualization/api/v1/auth/vcenter-login"
+    validate_certs: false
+    method: POST
+    body:
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      vcenter-hostname: "{{ vcenter_host }}"
+    body_format: 'json'
+    force_basic_auth: yes
+    return_content: yes
+  register: vclogin
+  tags:
+    - initial_setup
+    - register_vcenter
+    - register_svm
+    - register_vasa
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - vm_info
+
+
+- name: Store Token
+  ansible.builtin.set_fact: 
+    jwt_token: "{{ vclogin.json['jwt-token'] }}"
+  tags:
+    - initial_setup
+    - register_vcenter
+    - register_svm
+    - register_vasa
+    - create_vvol_ds
+    - delete_vvol_ds
+    - expand_vvol_ds
+    - shrink_vvol_ds
+    - vm_info
